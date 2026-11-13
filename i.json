@@ -1,0 +1,24 @@
+python3 -c '
+import plistlib
+p = "/Volumes/EFI/EFI/OC/config.plist"
+with open(p, "rb") as f: d = plistlib.load(f)
+
+# 1. Ganti SMBIOS ke iMac20,1 (Desktop iGPU UHD 630 Native di Tahoe)
+d["PlatformInfo"]["Generic"]["SystemProductName"] = "iMac20,1"
+
+# 2. Hapus -igfxvesa, pertahankan amfi=0x80, igfxonln=1, dan agdpmod=vit9696
+nvram = d["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]
+nvram["boot-args"] = "revpatch=auto,sbvmm amfi=0x80 igfxonln=1 agdpmod=vit9696"
+
+# 3. Set DeviceProperties Intel UHD 630 standar (biarkan WhateverGreen auto-route DisplayPort)
+dev_props = d.setdefault("DeviceProperties", {}).setdefault("Add", {})
+dev_props["PciRoot(0x0)/Pci(0x2,0x0)"] = {
+    "AAPL,ig-platform-id": bytes.fromhex("07009B3E"),
+    "device-id": bytes.fromhex("9B3E0000"),
+    "framebuffer-patch-enable": bytes.fromhex("01000000"),
+    "framebuffer-stolenmem": bytes.fromhex("00003001"),
+}
+
+with open(p, "wb") as f: plistlib.dump(d, f)
+print("SMBIOS iMac20,1 & Konfigurasi UHD 630 siap!")
+'
